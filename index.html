@@ -99,7 +99,7 @@
             font-weight: 500;
             color: #444;
             transition: all 0.2s ease;
-            min-height: 40px; /* Asegura que haya espacio para la nota */
+            min-height: 40px; 
         }
 
         .dia:hover {
@@ -109,23 +109,23 @@
             box-shadow: 0 4px 8px rgba(116, 235, 213, 0.4);
         }
 
-        /* --- ESTILOS DE LA AGENDA --- */
+        /* --- ESTILOS DE LA AGENDA Y COLORES --- */
         .nota-dia {
-            /* --- COLORES DE LAS CATEGORÍAS --- */
-         .nota-otro { background-color: #ffeb3b; color: #333; }
-         .nota-urgente { background-color: #ff4d4d; color: white; }
-         .nota-trabajo { background-color: #4da6ff; color: white; }
-         .nota-personal { background-color: #4dff4d; color: #333; }
             font-size: 10px;
-            background-color: #ffeb3b;
-            color: #333;
             margin-top: 5px;
             padding: 2px 4px;
             border-radius: 4px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            font-weight: bold;
         }
+
+        /* Las nuevas categorías de colores */
+        .nota-otro { background-color: #ffeb3b; color: #333; }
+        .nota-urgente { background-color: #ff4d4d; color: white; }
+        .nota-trabajo { background-color: #4da6ff; color: white; }
+        .nota-personal { background-color: #4dff4d; color: #333; }
 
         .modal-fondo {
             display: none;
@@ -174,7 +174,6 @@
 <body>
 
     <div class="calendario-contenedor">
-        
         <div class="cabecera">
             <button id="btn-anterior"><</button>
             <div style="display: flex; gap: 10px;">
@@ -189,14 +188,13 @@
         </div>
 
         <div class="cuadricula-dias" id="dias"></div>
-
     </div>
 
     <div id="modal-recordatorio" class="modal-fondo">
         <div class="modal-contenido">
             <h3 id="titulo-fecha">Agregar Recordatorio</h3>
             
-            <select id="categoria-recordatorio" style="width: 100%; margin-top: 10px; margin-bottom: 5px;">
+            <select id="categoria-recordatorio" style="width: 100%; margin-top: 10px; margin-bottom: 5px; padding: 5px; border-radius: 5px;">
                 <option value="otro">Amarillo (General)</option>
                 <option value="urgente">Rojo (Urgente)</option>
                 <option value="trabajo">Azul (Trabajo)</option>
@@ -204,6 +202,7 @@
             </select>
 
             <textarea id="texto-recordatorio" placeholder="Ej: Cita con el dentista a las 4pm..."></textarea>
+            
             <div style="display: flex; justify-content: space-between; margin-top: 15px;">
                 <button id="btn-cerrar" class="btn-modal btn-cancelar">Cancelar</button>
                 <button id="btn-guardar" class="btn-modal btn-guardar">Guardar</button>
@@ -223,6 +222,14 @@
         const selectorAnio = document.getElementById("selector-anio");
         const btnAnterior = document.getElementById("btn-anterior");
         const btnSiguiente = document.getElementById("btn-siguiente");
+        
+        // Elementos de la ventana emergente
+        const modal = document.getElementById("modal-recordatorio");
+        const textoRecordatorio = document.getElementById("texto-recordatorio");
+        const tituloFecha = document.getElementById("titulo-fecha");
+        const selectorCategoria = document.getElementById("categoria-recordatorio");
+        const btnCerrar = document.getElementById("btn-cerrar");
+        const btnGuardar = document.getElementById("btn-guardar");
 
         // Memoria de la agenda
         let agenda = JSON.parse(localStorage.getItem("misRecordatorios")) || {};
@@ -235,10 +242,15 @@
             opcion.textContent = nombreMes;
             selectorMes.appendChild(opcion);
         });
-// Seleccionamos el nuevo menú de categorías
-        const selectorCategoria = document.getElementById("categoria-recordatorio");
 
-        // --- ACTUALIZA TU FUNCIÓN DIBUJAR CALENDARIO ---
+        for (let i = anioActual - 10; i <= anioActual + 10; i++) {
+            let opcion = document.createElement("option");
+            opcion.value = i;
+            opcion.textContent = i;
+            selectorAnio.appendChild(opcion);
+        }
+
+        // Función principal que dibuja y colorea
         function dibujarCalendario(mes, anio) {
             diasContenedor.innerHTML = "";
             selectorMes.value = mes;
@@ -259,20 +271,19 @@
 
                 let claveFecha = `${anio}-${mes}-${i}`;
 
-                // Si hay nota guardada, evaluamos cómo pintarla
+                // Evaluar y pintar la nota si existe
                 if (agenda[claveFecha]) {
                     let datoNota = agenda[claveFecha];
-                    
-                    // Truco de compatibilidad: Por si tenías notas viejas guardadas solo como texto
                     let textoNota = typeof datoNota === 'string' ? datoNota : datoNota.texto;
                     let categoriaNota = typeof datoNota === 'string' ? 'otro' : datoNota.categoria;
 
                     let notaVisual = document.createElement("div");
-                    notaVisual.className = `nota-dia nota-${categoriaNota}`; // Aquí inyecta el color
+                    notaVisual.className = `nota-dia nota-${categoriaNota}`;
                     notaVisual.textContent = textoNota;
                     cajitaDia.appendChild(notaVisual);
                 }
 
+                // Abrir agenda al hacer clic
                 cajitaDia.addEventListener("click", () => {
                     diaSeleccionadoParaNota = claveFecha;
                     abrirModal(i, mes, anio, agenda[claveFecha]);
@@ -282,40 +293,7 @@
             }
         }
 
-        // --- ACTUALIZA LA FUNCIÓN DE ABRIR MODAL ---
-        function abrirModal(dia, mes, anio, datoExistente) {
-            tituloFecha.textContent = `Nota para: ${dia} de ${meses[mes]}`;
-            
-            // Leemos si ya existía la nota para cargar sus datos en la ventana
-            let texto = typeof datoExistente === 'string' ? datoExistente : (datoExistente ? datoExistente.texto : "");
-            let cat = typeof datoExistente === 'string' ? 'otro' : (datoExistente ? datoExistente.categoria : "otro");
-
-            textoRecordatorio.value = texto;
-            selectorCategoria.value = cat; // Asigna el color previo en el selector
-            modal.style.display = "flex";
-        }
-
-        // --- ACTUALIZA LA ACCIÓN DEL BOTÓN GUARDAR ---
-        btnGuardar.addEventListener("click", () => {
-            let textoEscrito = textoRecordatorio.value.trim();
-            let categoriaElegida = selectorCategoria.value;
-
-            if (textoEscrito === "") {
-                delete agenda[diaSeleccionadoParaNota];
-            } else {
-                // AQUÍ CREAMOS EL PAQUETE (Objeto) EN LUGAR DE SOLO TEXTO
-                agenda[diaSeleccionadoParaNota] = {
-                    texto: textoEscrito,
-                    categoria: categoriaElegida
-                };
-            }
-            
-            localStorage.setItem("misRecordatorios", JSON.stringify(agenda));
-            modal.style.display = "none";
-            dibujarCalendario(mesActual, anioActual);
-        });
-
-        // Lógica de los botones de meses
+        // Navegación rápida
         btnAnterior.addEventListener("click", () => {
             mesActual--;
             if (mesActual < 0) { mesActual = 11; anioActual--; }
@@ -328,7 +306,6 @@
             dibujarCalendario(mesActual, anioActual);
         });
 
-        // Lógica de los selectores rápidos
         selectorMes.addEventListener("change", (evento) => {
             mesActual = parseInt(evento.target.value);
             dibujarCalendario(mesActual, anioActual);
@@ -339,16 +316,15 @@
             dibujarCalendario(mesActual, anioActual);
         });
 
-        // Lógica de la ventana emergente
-        const modal = document.getElementById("modal-recordatorio");
-        const textoRecordatorio = document.getElementById("texto-recordatorio");
-        const tituloFecha = document.getElementById("titulo-fecha");
-        const btnCerrar = document.getElementById("btn-cerrar");
-        const btnGuardar = document.getElementById("btn-guardar");
-
-        function abrirModal(dia, mes, anio, textoExistente) {
+        // Lógica de la ventana emergente y guardado de categorías
+        function abrirModal(dia, mes, anio, datoExistente) {
             tituloFecha.textContent = `Nota para: ${dia} de ${meses[mes]}`;
-            textoRecordatorio.value = textoExistente || "";
+            
+            let texto = typeof datoExistente === 'string' ? datoExistente : (datoExistente ? datoExistente.texto : "");
+            let cat = typeof datoExistente === 'string' ? 'otro' : (datoExistente ? datoExistente.categoria : "otro");
+
+            textoRecordatorio.value = texto;
+            selectorCategoria.value = cat; 
             modal.style.display = "flex";
         }
 
@@ -356,7 +332,23 @@
             modal.style.display = "none";
         });
 
+        btnGuardar.addEventListener("click", () => {
+            let textoEscrito = textoRecordatorio.value.trim();
+            let categoriaElegida = selectorCategoria.value;
 
+            if (textoEscrito === "") {
+                delete agenda[diaSeleccionadoParaNota];
+            } else {
+                agenda[diaSeleccionadoParaNota] = {
+                    texto: textoEscrito,
+                    categoria: categoriaElegida
+                };
+            }
+            
+            localStorage.setItem("misRecordatorios", JSON.stringify(agenda));
+            modal.style.display = "none";
+            dibujarCalendario(mesActual, anioActual);
+        });
 
         // Iniciar todo
         dibujarCalendario(mesActual, anioActual);
